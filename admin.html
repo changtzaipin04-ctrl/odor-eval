@@ -358,7 +358,7 @@ canvas{display:block;max-width:100%;}
 const CPS = [1,2,3,4,5,6,7,8,9,10,15,20];
 const COLORS=['#3b82f6','#8b5cf6','#ec4899','#22c55e','#f59e0b','#06b6d4','#f97316','#a3e635','#e879f9','#fb7185','#34d399','#fbbf24'];
 
-let GAS_URL = localStorage.getItem('gas_url') || 'https://script.google.com/macros/s/AKfycbyQ9JfvYSKQTdF_mHmaOTpOUQm2ZkLrzLNSO3SijfMzprS64T_-ijh8ghNrWPo4UOUU/exec';
+let GAS_URL = localStorage.getItem('gas_url') || 'https://script.google.com/macros/s/AKfycbxwFmEXNP3UbPDsC4P_Xk8eMgnKv-dzAE4QTh7f-vcN6D0MGs1fDKU2MTH0ngyTxQqX5g/exec';
 let sessions=[];
 let activeTab='ov';
 let pollTimer=null;
@@ -384,20 +384,22 @@ async function poll(){
   try{
     const json = await jsonpGet(GAS_URL+'?action=getSessions');
     if(json.ok){ sessions=json.data||[]; render(); }
-    const now=new Date();
-    document.getElementById('last-sync').textContent=now.toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  }catch(e){console.warn(e);}
+    document.getElementById('last-sync').textContent=new Date().toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }catch(e){ console.warn('poll failed', e); }
 }
 
 function jsonpGet(url){
   return new Promise((resolve,reject)=>{
-    const cbName='_cb_'+Date.now();
+    const cbName='_cb_'+Date.now()+'_'+Math.floor(Math.random()*9999);
     const script=document.createElement('script');
-    window[cbName]=function(data){ resolve(data); delete window[cbName]; script.remove(); };
-    script.src=url+'&callback='+cbName;
-    script.onerror=reject;
+    const timer=setTimeout(()=>{
+      cleanup(); reject(new Error('timeout'));
+    },12000);
+    function cleanup(){ clearTimeout(timer); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName]=function(data){ cleanup(); resolve(data); };
+    script.src=url+'&callback='+cbName+'&t='+Date.now();
+    script.onerror=function(e){ cleanup(); reject(e); };
     document.head.appendChild(script);
-    setTimeout(()=>{ delete window[cbName]; script.remove(); reject(new Error('timeout')); },10000);
   });
 }
 
