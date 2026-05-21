@@ -291,7 +291,7 @@ canvas{display:block;max-width:100%;}
         <div class="g-stats">
           <div class="g-stat"><div class="v" id="g-n">0</div><div class="l">분석 대상</div></div>
           <div class="g-stat"><div class="v" id="g-a1">—</div><div class="l">1분 평균</div></div>
-          <div class="g-stat"><div class="v" id="g-a10">—</div><div class="l">10분 평균</div></div>
+          <div class="g-stat"><div class="v" id="g-a10">—</div><div class="l">20분 평균</div></div>
           <div class="g-stat"><div class="v" id="g-drop">—</div><div class="l">감소폭</div></div>
           <div class="g-stat"><div class="v" id="g-adapt">—</div><div class="l">적응률</div></div>
         </div>
@@ -355,7 +355,7 @@ canvas{display:block;max-width:100%;}
 </div>
 
 <script>
-const CPS = [1,2,3,4,5,6,7,8,9,10];
+const CPS = [1,2,3,4,5,6,7,8,9,10,15,20];
 const COLORS=['#3b82f6','#8b5cf6','#ec4899','#22c55e','#f59e0b','#06b6d4','#f97316','#a3e635','#e879f9','#fb7185','#34d399','#fbbf24'];
 
 let GAS_URL = localStorage.getItem('gas_url') || 'https://script.google.com/macros/s/AKfycbx7Okl96V2Gjr1LpUx4IDgeHOeY48iY5tJ77oAkGgT3s7pW4eFQiAORekbWJs5i1JhTiA/exec';
@@ -495,7 +495,7 @@ function drawGraph(){
   const data=getFiltered();
   const mode=document.getElementById('g-mode').value;
 
-  const a1=avgAt(data,1); const a10=avgAt(data,10);
+  const a1=avgAt(data,1); const a10=avgAt(data,20);
   document.getElementById('g-n').textContent=data.length;
   document.getElementById('g-a1').textContent=a1!==null?a1.toFixed(1):'—';
   document.getElementById('g-a10').textContent=a10!==null?a10.toFixed(1):'—';
