@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>후각 적응도 평가</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:ital,wght@0,400;0,500;0,700&display=swap');
+
+:root {
+  --bg:#f1f5f9; --card:#ffffff; --card2:#f8fafc; --border:#e2e8f0;
+  --text:#0f172a; --muted:#64748b; --blue:#2563eb; --blue-lt:#dbeafe;
+  --green:#16a34a; --green-lt:#dcfce7; --red:#dc2626; --red-lt:#fee2e2;
+  --amber:#d97706; --amber-lt:#fef3c7; --navy:#0f172a; --radius:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.show{display:flex;}
+
+/* ── SURVEY SCREEN ── */
+#scr-survey{background:var(--bg);}
+.survey-header{
+  background:var(--navy);padding:14px 20px;
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.survey-header .phase-badge{
+  background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
+  border-radius:8px;padding:3px 10px;font-size:11px;color:rgba(255,255,255,0.7);
+  font-family:'DM Mono',monospace;
+}
+.survey-header h1{font-size:15px;font-weight:700;color:#fff;}
+.survey-body{flex:1;overflow-y:auto;padding:20px 16px 32px;}
+.survey-section{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 18px;margin-bottom:16px;
+}
+.section-title{
+  font-size:13px;font-weight:700;color:var(--blue);
+  text-transform:uppercase;letter-spacing:0.06em;
+  margin-bottom:16px;padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.section-title::before{content:'';display:block;width:3px;height:14px;background:var(--blue);border-radius:2px;}
+.q-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;margin-top:14px;}
+.q-label:first-child{margin-top:0;}
+.q-sub{font-size:11px;color:var(--muted);margin-bottom:8px;margin-top:-4px;}
+.radio-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+.radio-btn{
+  padding:8px 16px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--card2);font-size:13px;font-weight:500;color:var(--muted);
+  cursor:pointer;transition:all 0.15s;
+}
+.radio-btn.sel{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);}
+.radio-btn:active{transform:scale(0.96);}
+.text-input{
+  width:100%;padding:10px 14px;border:1.5px solid var(--border);
+  border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:15px;
+  color:var(--text);background:var(--card2);
+}
+.text-input:focus{outline:none;border-color:var(--blue);}
+.inline-input{
+  display:inline-block;width:80px;padding:6px 10px;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--text);
+  background:var(--card2);text-align:center;
+}
+.inline-input:focus{outline:none;border-color:var(--blue);}
+.unit{font-size:13px;color:var(--muted);margin-left:4px;}
+
+/* Exclusion table */
+.excl-table{width:100%;border-collapse:collapse;}
+.excl-table th{font-size:11px;color:var(--muted);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);}
+.excl-table th:last-child,.excl-table th:nth-last-child(2){text-align:center;width:54px;}
+.excl-table td{font-size:13px;padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.excl-table tr:last-child td{border-bottom:none;}
+.excl-table td:nth-child(2),.excl-table td:nth-child(3){text-align:center;}
+.excl-radio{
+  width:22px;height:22px;border-radius:50%;border:2px solid var(--border);
+  background:var(--card2);cursor:pointer;display:inline-flex;
+  align-items:center;justify-content:center;transition:all 0.15s;
+}
+.excl-radio.sel-yes{background:var(--red-lt);border-color:var(--red);}
+.excl-radio.sel-no{background:var(--green-lt);border-color:var(--green);}
+.excl-radio.sel-yes::after{content:'✓';font-size:12px;color:var(--red);}
+.excl-radio.sel-no::after{content:'✓';font-size:12px;color:var(--green);}
+
+/* 5-point scale */
+.scale-row{display:flex;gap:8px;}
+.scale-btn{
+  flex:1;aspect-ratio:1;max-width:52px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--card2);
+  font-size:15px;font-weight:700;color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+}
+.scale-btn.sel{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);}
+.scale-btn:active{transform:scale(0.93);}
+
+/* Slider */
+.slider-row{display:flex;align-items:center;gap:10px;}
+.slider-row input[type=range]{flex:1;}
+.slider-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--blue);min-width:28px;text-align:center;}
+
+/* Baseline box (실험자용) */
+.baseline-box{
+  background:var(--amber-lt);border:1px solid #fcd34d;
+  border-radius:12px;padding:14px 16px;
+}
+.baseline-box .bl-label{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:0.06em;margin-bottom:10px;}
+.bl-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.bl-row:last-child{margin-bottom:0;}
+.bl-key{font-size:12px;color:var(--amber);font-weight:600;min-width:120px;}
+
+.excl-warning{
+  background:var(--red-lt);border:1px solid #fca5a5;
+  border-radius:12px;padding:14px 16px;margin-top:12px;display:none;
+}
+.excl-warning p{font-size:13px;color:var(--red);font-weight:600;}
+.excl-warning small{font-size:11px;color:#ef4444;display:block;margin-top:4px;}
+
+.survey-footer{padding:16px;flex-shrink:0;}
+.btn-survey-next{
+  width:100%;padding:16px;background:var(--blue);border:none;border-radius:14px;
+  color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:17px;font-weight:900;
+  cursor:pointer;transition:all 0.2s;
+}
+.btn-survey-next:disabled{background:#94a3b8;cursor:not-allowed;}
+.btn-survey-next:not(:disabled):active{transform:scale(0.98);}
+
+/* ── LOGIN SCREEN ── */
+#scr-login{
+  background:linear-gradient(160deg,#0f172a 0%,#1e3a5f 60%,#0f2027 100%);
+  align-items:center;justify-content:center;padding:24px;
+}
+.login-wrap{width:100%;max-width:400px;animation:fadeUp 0.5s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .icon{font-size:56px;display:block;margin-bottom:10px;}
+.login-logo h1{font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;}
+.login-logo p{font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;font-family:'DM Mono',monospace;}
+.login-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:28px 24px;backdrop-filter:blur(24px);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;}
+.field input,.field select{width:100%;padding:12px 14px;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:11px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:15px;transition:border-color 0.2s;}
+.field input::placeholder{color:rgba(255,255,255,0.25);}
+.field input:focus,.field select:focus{outline:none;border-color:rgba(255,255,255,0.4);}
+.field select option{background:#1e3a5f;}
+.btn-enter{width:100%;margin-top:6px;padding:16px;background:linear-gradient(135deg,#2563eb,#3b82f6);border:none;border-radius:13px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:17px;font-weight:900;cursor:pointer;transition:all 0.2s;box-shadow:0 8px 24px rgba(37,99,235,0.4);}
+.btn-enter:active{transform:scale(0.98);}
+.btn-enter:disabled{background:#334155;box-shadow:none;}
+.setup-hint{margin-top:14px;text-align:center;font-size:11px;color:rgba(255,255,255,0.25);}
+.setup-hint a{color:rgba(255,255,255,0.4);}
+
+/* ── EVAL SCREEN ── */
+#scr-eval{background:var(--bg);}
+.eval-bar{background:var(--navy);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.eval-bar .p-chip{display:flex;align-items:center;gap:8px;}
+.eval-bar .p-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:liveblink 2s ease-in-out infinite;}
+@keyframes liveblink{0%,100%{opacity:1}50%{opacity:0.3}}
+.eval-bar .p-name{font-size:14px;font-weight:700;color:#fff;}
+.conn-tag{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(22,163,74,0.2);color:var(--green);}
+.conn-tag.err{background:rgba(220,38,38,0.2);color:var(--red);}
+.timer-hero{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);padding:22px 20px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.timer-big{font-family:'DM Mono',monospace;font-size:52px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;}
+.timer-lbl{font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;}
+.timer-next{text-align:right;}
+.timer-next-label{font-size:11px;color:rgba(255,255,255,0.4);}
+.timer-next-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--blue);margin-top:2px;}
+.cp-strip{background:#1e293b;display:flex;gap:0;overflow-x:auto;flex-shrink:0;border-bottom:1px solid #334155;scrollbar-width:none;}
+.cp-strip::-webkit-scrollbar{display:none;}
+.cp-cell{flex:1;min-width:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px;gap:2px;border-right:1px solid #334155;transition:background 0.3s;}
+.cp-cell:last-child{border-right:none;}
+.cp-cell.done{background:rgba(22,163,74,0.1);}
+.cp-cell.active{background:rgba(37,99,235,0.18);}
+.cp-min{font-family:'DM Mono',monospace;font-size:11px;color:#475569;font-weight:700;}
+.cp-cell.done .cp-min{color:var(--green);}
+.cp-cell.active .cp-min{color:var(--blue);}
+.cp-val{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:#334155;}
+.cp-cell.done .cp-val{color:#94a3b8;}
+.cp-icon{font-size:10px;line-height:1;}
+.eval-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.waiting-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.wc-icon{width:44px;height:44px;border-radius:13px;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.wc-title{font-size:14px;font-weight:700;}
+.wc-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.wc-countdown{margin-top:5px;display:inline-block;background:var(--blue-lt);color:var(--blue);font-family:'DM Mono',monospace;font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;}
+.input-card{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:20px 18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:border-color 0.3s;position:relative;}
+.input-card.unlocked{border-color:var(--blue);}
+.ic-section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:11px;display:flex;align-items:center;gap:8px;}
+.ic-section-label .cp-badge{background:var(--blue);color:#fff;font-size:11px;padding:2px 9px;border-radius:6px;text-transform:none;letter-spacing:0;font-weight:700;}
+.intensity-guide{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:7px;padding:0 2px;}
+.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:5px;}
+.score-btn{aspect-ratio:1;border-radius:11px;border:2px solid var(--border);background:var(--card2);font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:var(--text);cursor:pointer;transition:all 0.12s;display:flex;align-items:center;justify-content:center;}
+.score-btn:active{transform:scale(0.9);}
+.score-btn[data-v="1"],.score-btn[data-v="2"]{--band:#16a34a;--band-lt:#dcfce7;}
+.score-btn[data-v="3"],.score-btn[data-v="4"]{--band:#65a30d;--band-lt:#ecfccb;}
+.score-btn[data-v="5"],.score-btn[data-v="6"]{--band:#d97706;--band-lt:#fef3c7;}
+.score-btn[data-v="7"],.score-btn[data-v="8"]{--band:#dc2626;--band-lt:#fee2e2;}
+.score-btn[data-v="9"],.score-btn[data-v="10"]{--band:#9f1239;--band-lt:#ffe4e6;}
+.score-btn.sel{background:var(--band-lt);border-color:var(--band);color:var(--band);transform:scale(1.1);box-shadow:0 4px 12px rgba(0,0,0,0.12);}
+.comfort-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:4px;}
+.comfort-btn{padding:14px 6px;border-radius:13px;border:2px solid var(--border);background:var(--card2);cursor:pointer;text-align:center;transition:all 0.12s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.comfort-btn:active{transform:scale(0.95);}
+.cf-emoji{font-size:30px;}
+.cf-word{font-size:12px;font-weight:700;color:var(--muted);}
+.comfort-btn.sel-p{background:var(--green-lt);border-color:var(--green);}
+.comfort-btn.sel-p .cf-word{color:var(--green);}
+.comfort-btn.sel-n{background:var(--amber-lt);border-color:var(--amber);}
+.comfort-btn.sel-n .cf-word{color:var(--amber);}
+.comfort-btn.sel-u{background:var(--red-lt);border-color:var(--red);}
+.comfort-btn.sel-u .cf-word{color:var(--red);}
+.ic-divider{height:1px;background:var(--border);margin:16px 0;}
+.btn-submit{width:100%;padding:16px;background:var(--blue);border:none;border-radius:13px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:16px;font-weight:900;cursor:pointer;transition:all 0.15s;margin-top:4px;}
+.btn-submit:disabled{background:#94a3b8;cursor:not-allowed;}
+.btn-submit:not(:disabled):active{transform:scale(0.98);background:#1d4ed8;}
+.lock-overlay{position:absolute;inset:0;border-radius:calc(var(--radius) - 2px);background:rgba(241,245,249,0.65);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);font-size:13px;color:var(--muted);font-weight:600;gap:6px;pointer-events:all;}
+
+/* ── DONE ── */
+#scr-done{background:linear-gradient(160deg,#14532d,#15803d);align-items:center;justify-content:center;padding:28px;text-align:center;}
+.done-icon{font-size:72px;margin-bottom:16px;}
+#scr-done h1{font-size:26px;font-weight:900;color:#fff;margin-bottom:6px;}
+#scr-done p{font-size:14px;color:rgba(255,255,255,0.7);line-height:1.7;}
+.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:24px;width:100%;max-width:340px;}
+.sum-cell{background:rgba(255,255,255,0.12);border-radius:9px;padding:7px 4px;text-align:center;}
+.sum-min{font-size:10px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;}
+.sum-val{font-size:15px;font-weight:900;color:#fff;margin-top:1px;}
+.sum-icon{font-size:12px;}
+
+/* ── ALERT ── */
+.alert-overlay{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.alert-overlay.show{opacity:1;pointer-events:all;}
+.alert-bg{position:absolute;inset:0;background:linear-gradient(160deg,#1d4ed8,#2563eb);}
+.alert-content{position:relative;z-index:1;text-align:center;display:flex;flex-direction:column;align-items:center;}
+.alert-bell{font-size:88px;margin-bottom:6px;animation:bellshake 0.4s ease-in-out infinite alternate;}
+@keyframes bellshake{from{transform:rotate(-14deg) scale(1.05)}to{transform:rotate(14deg) scale(1.05)}}
+.alert-min{font-size:52px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1;margin-bottom:6px;}
+.alert-sub{font-size:15px;color:rgba(255,255,255,0.8);margin-bottom:32px;}
+.btn-alert-ok{padding:16px 60px;border:none;border-radius:15px;background:#fff;color:#2563eb;font-family:'Noto Sans KR',sans-serif;font-size:17px;font-weight:900;cursor:pointer;box-shadow:0 8px 28px rgba(0,0,0,0.2);}
+.btn-alert-ok:active{transform:scale(0.97);}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;z-index:8888;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-bg.show{opacity:1;pointer-events:all;}
+.modal-box{background:#fff;border-radius:18px;padding:24px;width:100%;max-width:420px;}
+.modal-box h2{font-size:16px;font-weight:900;margin-bottom:6px;}
+.modal-box p{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;}
+.url-inp{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text);margin-bottom:10px;}
+.url-inp:focus{outline:none;border-color:var(--blue);}
+.btn-save-url{width:100%;padding:12px;background:var(--blue);border:none;border-radius:9px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- ══ PHASE 1: 사전 설문 ══ -->
+<div class="screen show" id="scr-survey">
+  <div class="survey-header">
+    <span class="phase-badge">PHASE 1</span>
+    <h1>사전 설문</h1>
+  </div>
+  <div class="survey-body">
+
+    <!-- 1-1 인구통계 -->
+    <div class="survey-section">
+      <div class="section-title">1-1 인구통계 정보</div>
+
+      <div class="q-label">성별</div>
+      <div class="radio-row" id="rg-gender">
+        <button class="radio-btn" data-v="M" onclick="pick('rg-gender',this)">남</button>
+        <button class="radio-btn" data-v="F" onclick="pick('rg-gender',this)">여</button>
+        <button class="radio-btn" data-v="N" onclick="pick('rg-gender',this)">응답하지 않음</button>
+      </div>
+
+      <div class="q-label">연령</div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <input class="inline-input" type="number" id="sv-age" placeholder="25" min="1" max="120">
+        <span class="unit">세</span>
+      </div>
+
+      <div class="q-label">전공 / 학년</div>
+      <input class="text-input" type="text" id="sv-major" placeholder="예: 환경공학과 3학년">
+
+      <div class="q-label">(여성 응답자) 생리주기 단계</div>
+      <div class="q-sub">해당 없으면 건너뛰세요</div>
+      <div class="radio-row" id="rg-cycle">
+        <button class="radio-btn" data-v="여포기" onclick="pick('rg-cycle',this)">여포기</button>
+        <button class="radio-btn" data-v="배란기" onclick="pick('rg-cycle',this)">배란기</button>
+        <button class="radio-btn" data-v="황체기" onclick="pick('rg-cycle',this)">황체기</button>
+        <button class="radio-btn" data-v="월경기" onclick="pick('rg-cycle',this)">월경기</button>
+        <button class="radio-btn" data-v="모름/해당없음" onclick="pick('rg-cycle',this)">모름/해당없음</button>
+      </div>
+    </div>
+
+    <!-- 1-2 제외 기준 -->
+    <div class="survey-section">
+      <div class="section-title">1-2 제외 기준 확인</div>
+      <div class="q-sub" style="margin-bottom:10px;">"예"가 하나라도 있으면 실험에 참여할 수 없습니다.</div>
+      <table class="excl-table">
+        <thead>
+          <tr><th>항목</th><th>예</th><th>아니오</th></tr>
+        </thead>
+        <tbody id="excl-tbody"></tbody>
+      </table>
+      <div class="excl-warning" id="excl-warning">
+        <p>⚠️ 실험 참여 불가</p>
+        <small>선택하신 항목으로 인해 실험에 참여하실 수 없습니다. 실험자에게 알려주세요.</small>
+      </div>
+    </div>
+
+    <!-- 1-3 당일 컨디션 -->
+    <div class="survey-section">
+      <div class="section-title">1-3 당일 컨디션 체크</div>
+
+      <div class="q-label">최근 수면 시간</div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <input class="inline-input" type="number" id="sv-sleep" placeholder="7" min="0" max="24" step="0.5">
+        <span class="unit">시간</span>
+      </div>
+
+      <div class="q-label">마지막 식사 시각</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input class="inline-input" type="number" id="sv-meal-h" placeholder="12" min="0" max="23" style="width:64px;">
+        <span class="unit">시</span>
+        <input class="inline-input" type="number" id="sv-meal-m" placeholder="30" min="0" max="59" style="width:64px;">
+        <span class="unit">분</span>
+      </div>
+
+      <div class="q-label">오늘 카페인 섭취량</div>
+      <div class="radio-row" id="rg-caffeine">
+        <button class="radio-btn" data-v="없음" onclick="pick('rg-caffeine',this)">없음</button>
+        <button class="radio-btn" data-v="1잔" onclick="pick('rg-caffeine',this)">1잔</button>
+        <button class="radio-btn" data-v="2잔 이상" onclick="pick('rg-caffeine',this)">2잔 이상</button>
+      </div>
+
+      <div class="q-label">현재 컨디션 (1=매우 나쁨 → 5=매우 좋음)</div>
+      <div class="scale-row" id="rg-condition">
+        <button class="scale-btn" data-v="1" onclick="pick('rg-condition',this)">1</button>
+        <button class="scale-btn" data-v="2" onclick="pick('rg-condition',this)">2</button>
+        <button class="scale-btn" data-v="3" onclick="pick('rg-condition',this)">3</button>
+        <button class="scale-btn" data-v="4" onclick="pick('rg-condition',this)">4</button>
+        <button class="scale-btn" data-v="5" onclick="pick('rg-condition',this)">5</button>
+      </div>
+
+      <div class="q-label">현재 코막힘 정도 (0=전혀 없음 → 10=매우 심함)</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="10" value="0" id="sv-nose" oninput="document.getElementById('nose-val').textContent=this.value">
+        <span class="slider-val" id="nose-val">0</span>
+        <span class="unit">/ 10</span>
+      </div>
+    </div>
+
+    <!-- 1-4 Baseline (실험자 작성) -->
+    <div class="survey-section">
+      <div class="section-title">1-4 후각 Baseline 확인 <span style="font-size:10px;font-weight:400;color:var(--amber);margin-left:4px;">실험자 작성</span></div>
+      <div class="baseline-box">
+        <div class="bl-label">실험자 기입란</div>
+        <div class="bl-row">
+          <span class="bl-key">검사 향</span>
+          <input class="text-input" type="text" id="sv-smell" placeholder="예: 커피 향" style="flex:1;padding:8px 12px;">
+        </div>
+        <div class="bl-row">
+          <span class="bl-key">식별 가능 여부</span>
+          <div class="radio-row" id="rg-baseline" style="flex:1;margin:0;">
+            <button class="radio-btn" data-v="가능" onclick="pick('rg-baseline',this)">가능</button>
+            <button class="radio-btn" data-v="불가능(제외)" onclick="pick('rg-baseline',this)" style="background:#fee2e2;border-color:#fca5a5;color:#dc2626;">불가능 → 제외</button>
+          </div>
+        </div>
+        <div class="bl-row" style="margin-bottom:0;">
+          <span class="bl-key">검사 시각</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input class="inline-input" type="number" id="sv-bl-h" placeholder="14" min="0" max="23" style="width:60px;">
+            <span class="unit">시</span>
+            <input class="inline-input" type="number" id="sv-bl-m" placeholder="00" min="0" max="59" style="width:60px;">
+            <span class="unit">분</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="survey-footer">
+    <button class="btn-survey-next" id="btn-survey-next" onclick="goToLogin()">다음 — 참가자 정보 입력 →</button>
+  </div>
+</div>
+
+<!-- ══ LOGIN ══ -->
+<div class="screen" id="scr-login">
+  <div class="login-wrap" style="margin:auto;">
+    <div class="login-logo">
+      <span class="icon">👃</span>
+      <h1>후각 적응도 평가</h1>
+      <p>PHASE 2 — 실험 시작</p>
+    </div>
+    <div class="login-card">
+      <div class="field">
+        <label>이름 / 참가자 코드</label>
+        <input type="text" id="inp-name" placeholder="예: 홍길동 또는 P-001" autocomplete="off" autocorrect="off">
+      </div>
+      <button class="btn-enter" id="btn-enter" onclick="startEval()">
+        방에 입장하고 평가 시작 →
+      </button>
+      <div class="setup-hint">
+        서버 URL 미설정? <a href="#" onclick="openSetup()">여기서 설정</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EVAL ══ -->
+<div class="screen" id="scr-eval">
+  <div class="eval-bar">
+    <div class="p-chip">
+      <div class="p-dot"></div>
+      <div class="p-name" id="bar-name">—</div>
+    </div>
+    <div class="conn-tag" id="conn-tag">연결 중...</div>
+  </div>
+  <div class="timer-hero">
+    <div>
+      <div class="timer-big" id="timer-disp">0:00</div>
+      <div class="timer-lbl">경과 시간</div>
+    </div>
+    <div class="timer-next">
+      <div class="timer-next-label">다음 평가까지</div>
+      <div class="timer-next-val" id="next-val">—</div>
+    </div>
+  </div>
+  <div class="cp-strip" id="cp-strip"></div>
+  <div class="eval-scroll">
+    <div class="waiting-card" id="waiting-card">
+      <div class="wc-icon">⏱</div>
+      <div>
+        <div class="wc-title" id="wc-title">평가 대기 중</div>
+        <div class="wc-sub">시간이 되면 알람이 울립니다</div>
+        <span class="wc-countdown" id="wc-countdown">—</span>
+      </div>
+    </div>
+    <div class="input-card" id="input-card">
+      <div class="lock-overlay" id="lock-overlay">🔒 평가 시간이 되면 활성화됩니다</div>
+      <div class="ic-section-label">냄새 강도 <span class="cp-badge" id="cp-badge-label">대기</span></div>
+      <div class="intensity-guide"><span>😌 거의 없음 (1)</span><span>(10) 매우 강함 😤</span></div>
+      <div class="score-grid" id="score-grid"></div>
+      <div class="ic-divider"></div>
+      <div class="ic-section-label">쾌 · 불쾌 감각</div>
+      <div class="comfort-grid">
+        <button class="comfort-btn" data-v="pleasant" onclick="pickComfort(this)"><span class="cf-emoji">😊</span><span class="cf-word">쾌</span></button>
+        <button class="comfort-btn" data-v="neutral"  onclick="pickComfort(this)"><span class="cf-emoji">😐</span><span class="cf-word">중립</span></button>
+        <button class="comfort-btn" data-v="unpleasant" onclick="pickComfort(this)"><span class="cf-emoji">😣</span><span class="cf-word">불쾌</span></button>
+      </div>
+      <button class="btn-submit" id="btn-submit" disabled onclick="submitScore()">✓ 제출하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DONE ══ -->
+<div class="screen" id="scr-done">
+  <div class="done-icon">🎉</div>
+  <h1>평가 완료!</h1>
+  <p>10분간의 평가에<br>참여해 주셔서 감사합니다.<br>이제 방에서 나오셔도 됩니다.</p>
+  <div class="summary-grid" id="summary-grid"></div>
+</div>
+
+<!-- Alert -->
+<div class="alert-overlay" id="alert-overlay">
+  <div class="alert-bg"></div>
+  <div class="alert-content">
+    <div class="alert-bell">🔔</div>
+    <div class="alert-min" id="alert-min-text">1분 평가!</div>
+    <div class="alert-sub">지금 냄새 강도와 쾌·불쾌를 선택해 주세요!</div>
+    <button class="btn-alert-ok" onclick="dismissAlert()">확인, 평가하기 →</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal-setup" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <h2>🔧 서버 URL 설정</h2>
+    <p>Google Apps Script 배포 후 받은 URL을 붙여넣으세요.</p>
+    <input class="url-inp" id="url-input" placeholder="https://script.google.com/macros/s/.../exec" type="url">
+    <button class="btn-save-url" onclick="saveUrl()">저장</button>
+  </div>
+</div>
+
+<script>
+const CHECKPOINTS = [1,2,3,4,5,6,7,8,9,10];
+
+// ── URL 설정 ──────────────────────────────────────────
+let GAS_URL = 'https://script.google.com/macros/s/AKfycbx7Okl96V2Gjr1LpUx4IDgeHOeY48iY5tJ77oAkGgT3s7pW4eFQiAORekbWJs5i1JhTiA/exec';
+
+function openSetup(){ document.getElementById('url-input').value=GAS_URL; document.getElementById('modal-setup').classList.add('show'); }
+function closeModal(){ document.getElementById('modal-setup').classList.remove('show'); }
+function saveUrl(){
+  GAS_URL = document.getElementById('url-input').value.trim();
+  localStorage.setItem('gas_url', GAS_URL);
+  closeModal();
+}
+
+// ── 설문 로직 ─────────────────────────────────────────
+const EXCL_ITEMS = [
+  '현재 비염, 축농증, 감기 등으로 코막힘이 있다',
+  '알레르기성 비염을 진단받은 적이 있다',
+  '후각 관련 질환(무후각증 등)을 진단받은 적이 있다',
+  '현재 흡연자이다',
+  '최근 24시간 이내 비강 스프레이 또는 감기약을 복용했다'
+];
+const exclAns = {}; // {0:'yes'/'no', ...}
+
+// 제외기준 테이블 생성
+const tbody = document.getElementById('excl-tbody');
+EXCL_ITEMS.forEach((item, i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${item}</td>
+    <td><div class="excl-radio" id="excl-yes-${i}" onclick="pickExcl(${i},'yes')"></div></td>
+    <td><div class="excl-radio" id="excl-no-${i}"  onclick="pickExcl(${i},'no')"></div></td>`;
+  tbody.appendChild(tr);
+});
+
+function pickExcl(idx, val) {
+  exclAns[idx] = val;
+  document.getElementById('excl-yes-'+idx).className = 'excl-radio' + (val==='yes'?' sel-yes':'');
+  document.getElementById('excl-no-'+idx).className  = 'excl-radio' + (val==='no' ?' sel-no':'');
+  const hasYes = Object.values(exclAns).includes('yes');
+  document.getElementById('excl-warning').style.display = hasYes ? 'block' : 'none';
+}
+
+// 라디오 버튼 선택
+function pick(groupId, btn) {
+  document.querySelectorAll('#'+groupId+' .radio-btn, #'+groupId+' .scale-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function getVal(groupId) {
+  const sel = document.querySelector('#'+groupId+' .sel');
+  return sel ? sel.dataset.v : '';
+}
+
+function goToLogin() {
+  // 제외 기준에 '예' 있으면 막기
+  if (Object.values(exclAns).includes('yes')) {
+    alert('제외 기준에 해당하여 실험에 참여할 수 없습니다.');
+    return;
+  }
+  // baseline '불가능' 선택 시
+  if (getVal('rg-baseline') === '불가능(제외)') {
+    alert('후각 검사 미통과로 실험에서 제외됩니다.');
+    return;
+  }
+  document.getElementById('scr-survey').classList.remove('show');
+  document.getElementById('scr-login').classList.add('show');
+}
+
+// 설문 데이터 수집
+function collectSurvey() {
+  return {
+    gender:    getVal('rg-gender'),
+    age:       document.getElementById('sv-age').value,
+    major:     document.getElementById('sv-major').value,
+    cycle:     getVal('rg-cycle'),
+    exclItems: EXCL_ITEMS.map((_, i) => exclAns[i] || ''),
+    sleep:     document.getElementById('sv-sleep').value,
+    mealTime:  (document.getElementById('sv-meal-h').value||'?')+'시'+(document.getElementById('sv-meal-m').value||'?')+'분',
+    caffeine:  getVal('rg-caffeine'),
+    condition: getVal('rg-condition'),
+    noseClog:  document.getElementById('sv-nose').value,
+    blSmell:   document.getElementById('sv-smell').value,
+    blResult:  getVal('rg-baseline'),
+    blTime:    (document.getElementById('sv-bl-h').value||'?')+'시'+(document.getElementById('sv-bl-m').value||'?')+'분',
+  };
+}
+
+// ── Audio ─────────────────────────────────────────────
+let audioCtx = null;
+function initAudio(){ if(!audioCtx) audioCtx = new(window.AudioContext||window.webkitAudioContext)(); }
+function beep(f,t,d){
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type='sine'; o.frequency.value=f;
+  g.gain.setValueAtTime(0,audioCtx.currentTime+t);
+  g.gain.linearRampToValueAtTime(0.4,audioCtx.currentTime+t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+t+d);
+  o.start(audioCtx.currentTime+t); o.stop(audioCtx.currentTime+t+d+0.05);
+}
+function playAlert(){ initAudio(); beep(660,0,0.22); beep(880,0.26,0.22); beep(1100,0.52,0.3); beep(440,0.86,0.5); }
+
+// ── API ───────────────────────────────────────────────
+async function apiPost(body) {
+  if (!GAS_URL) return { ok: false };
+  try {
+    const res = await fetch(GAS_URL, { method:'POST', redirect:'follow', body: JSON.stringify(body) });
+    return await res.json();
+  } catch(e) { return { ok: false }; }
+}
+function setConn(ok) {
+  const el = document.getElementById('conn-tag');
+  el.textContent = ok ? '✓ 연결됨' : '⚠ 오프라인';
+  el.className = 'conn-tag' + (ok ? '' : ' err');
+}
+
+// ── 평가 변수 ─────────────────────────────────────────
+let sessionId=null, myName='', startTime=null;
+let scores={}, comforts={}, pendingCpIdx=null;
+let alertedCps=new Set(), timerInterval=null;
+let selIntensity=null, selComfort=null;
+
+// ── Start ─────────────────────────────────────────────
+async function startEval() {
+  initAudio();
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { alert('이름을 입력하세요'); return; }
+
+  const btn = document.getElementById('btn-enter');
+  btn.disabled=true; btn.textContent='등록 중...';
+
+  myName = name;
+  sessionId = 'S_' + Date.now();
+  startTime = Date.now();
+
+  const survey = collectSurvey();
+
+  const res = await apiPost({
+    action:'register', sessionId, name,
+    gender: survey.gender,
+    age: survey.age,
+    survey: JSON.stringify(survey)
+  });
+  setConn(res.ok);
+
+  document.getElementById('bar-name').textContent = name;
+  document.getElementById('scr-login').classList.remove('show');
+  document.getElementById('scr-eval').classList.add('show');
+
+  buildCpStrip(); buildScoreButtons(); lockCard();
+  timerInterval = setInterval(tick, 400); tick();
+}
+
+// ── Tick ──────────────────────────────────────────────
+function tick() {
+  const elapsed = (Date.now() - startTime) / 1000;
+  const mm = Math.floor(elapsed/60), ss = Math.floor(elapsed%60);
+  document.getElementById('timer-disp').textContent = mm+':'+String(ss).padStart(2,'0');
+  const elMin = elapsed/60;
+  const nextIdx = CHECKPOINTS.findIndex(cp => scores[cp]===undefined);
+  if (nextIdx===-1) { allDone(); return; }
+  const nextCp = CHECKPOINTS[nextIdx];
+  const remaining = nextCp - elMin;
+  if (remaining<=0 && !alertedCps.has(nextCp)) { alertedCps.add(nextCp); triggerAlert(nextIdx); }
+  const remSec = Math.ceil(remaining*60);
+  document.getElementById('next-val').textContent = remaining>0 ? (remSec>=60?Math.ceil(remaining)+'분':remSec+'초') : '지금!';
+  document.getElementById('wc-title').textContent = remaining>0 ? '다음 평가: '+nextCp+'분 시점' : '⏰ '+nextCp+'분 평가 중';
+  document.getElementById('wc-countdown').textContent = remaining>0 ? (remSec>=60?'약 '+Math.ceil(remaining)+'분 후':remSec+'초 후') : '입력 후 제출';
+  updateCpStrip();
+}
+
+// ── Alert ─────────────────────────────────────────────
+function triggerAlert(cpIdx) {
+  pendingCpIdx = cpIdx;
+  document.getElementById('alert-min-text').textContent = CHECKPOINTS[cpIdx]+'분 평가!';
+  document.getElementById('alert-overlay').classList.add('show');
+  playAlert();
+  setTimeout(()=>{ if(document.getElementById('alert-overlay').classList.contains('show')) playAlert(); }, 3500);
+  unlockCard(cpIdx);
+}
+function dismissAlert() { document.getElementById('alert-overlay').classList.remove('show'); }
+
+// ── Score ─────────────────────────────────────────────
+function buildScoreButtons() {
+  const g = document.getElementById('score-grid'); g.innerHTML='';
+  for (let i=1;i<=10;i++) {
+    const b=document.createElement('button');
+    b.className='score-btn'; b.textContent=i; b.dataset.v=i;
+    b.onclick=()=>pickIntensity(i,b); g.appendChild(b);
+  }
+}
+function pickIntensity(v,btn) {
+  if(pendingCpIdx===null) return;
+  selIntensity=v;
+  document.querySelectorAll('.score-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel'); checkReady();
+}
+function pickComfort(btn) {
+  if(pendingCpIdx===null) return;
+  selComfort=btn.dataset.v;
+  document.querySelectorAll('.comfort-btn').forEach(b=>b.classList.remove('sel-p','sel-n','sel-u'));
+  const cls=selComfort==='pleasant'?'sel-p':selComfort==='neutral'?'sel-n':'sel-u';
+  btn.classList.add(cls); checkReady();
+}
+function checkReady() { document.getElementById('btn-submit').disabled=!(selIntensity&&selComfort); }
+
+function lockCard() {
+  document.getElementById('lock-overlay').style.display='flex';
+  document.getElementById('input-card').classList.remove('unlocked');
+  document.getElementById('btn-submit').disabled=true;
+  document.getElementById('cp-badge-label').textContent='대기';
+  selIntensity=null; selComfort=null;
+  document.querySelectorAll('.score-btn').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('.comfort-btn').forEach(b=>b.classList.remove('sel-p','sel-n','sel-u'));
+}
+function unlockCard(cpIdx) {
+  document.getElementById('lock-overlay').style.display='none';
+  document.getElementById('input-card').classList.add('unlocked');
+  document.getElementById('cp-badge-label').textContent=CHECKPOINTS[cpIdx]+'분 시점';
+}
+
+async function submitScore() {
+  if(!selIntensity||!selComfort||pendingCpIdx===null) return;
+  const cp=CHECKPOINTS[pendingCpIdx];
+  document.getElementById('btn-submit').disabled=true;
+  document.getElementById('btn-submit').textContent='저장 중...';
+  scores[cp]=selIntensity; comforts[cp]=selComfort;
+  const res=await apiPost({action:'submitScore',sessionId,cpMin:cp,intensity:selIntensity,comfort:selComfort});
+  setConn(res.ok);
+  pendingCpIdx=null; lockCard();
+  document.getElementById('btn-submit').textContent='✓ 제출하기';
+  updateCpStrip();
+  if(CHECKPOINTS.every(c=>scores[c]!==undefined)) allDone();
+}
+
+// ── Strip ─────────────────────────────────────────────
+function buildCpStrip() {
+  const s=document.getElementById('cp-strip'); s.innerHTML='';
+  CHECKPOINTS.forEach((cp,i)=>{
+    const c=document.createElement('div'); c.className='cp-cell'; c.id='cpc-'+i;
+    c.innerHTML=`<div class="cp-min" id="cpm-${i}">${cp}분</div><div class="cp-val" id="cpv-${i}">—</div><div class="cp-icon" id="cpi-${i}"></div>`;
+    s.appendChild(c);
+  });
+}
+function updateCpStrip() {
+  CHECKPOINTS.forEach((cp,i)=>{
+    const cell=document.getElementById('cpc-'+i);
+    const vEl=document.getElementById('cpv-'+i);
+    const iEl=document.getElementById('cpi-'+i);
+    if(!cell) return;
+    cell.classList.remove('done','active');
+    if(scores[cp]!==undefined){
+      cell.classList.add('done'); vEl.textContent=scores[cp];
+      const c=comforts[cp]; iEl.textContent=c==='pleasant'?'😊':c==='unpleasant'?'😣':'😐';
+    } else if(pendingCpIdx!==null&&CHECKPOINTS[pendingCpIdx]===cp){
+      cell.classList.add('active'); vEl.textContent='?'; iEl.textContent='';
+    } else { vEl.textContent='—'; iEl.textContent=''; }
+  });
+}
+
+// ── Done ──────────────────────────────────────────────
+async function allDone() {
+  clearInterval(timerInterval);
+  await apiPost({action:'complete',sessionId});
+  const g=document.getElementById('summary-grid'); g.innerHTML='';
+  CHECKPOINTS.forEach(cp=>{
+    const v=scores[cp]||'—', c=comforts[cp];
+    const icon=c==='pleasant'?'😊':c==='unpleasant'?'😣':c==='neutral'?'😐':'';
+    const d=document.createElement('div'); d.className='sum-cell';
+    d.innerHTML=`<div class="sum-min">${cp}분</div><div class="sum-val">${v}</div><div class="sum-icon">${icon}</div>`;
+    g.appendChild(d);
+  });
+  document.getElementById('scr-eval').classList.remove('show');
+  document.getElementById('scr-done').classList.add('show');
+}
+</script>
+</body>
+</html>
