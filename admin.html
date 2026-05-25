@@ -306,6 +306,14 @@ canvas{display:block;max-width:100%;}
             </select>
           </div>
           <div class="g-ctrl">
+            <label>향 종류</label>
+            <select id="g-frag" onchange="drawGraph()">
+              <option value="all">전체</option>
+              <option value="좋은향">😊 좋은 향</option>
+              <option value="나쁜향">😣 나쁜 향</option>
+            </select>
+          </div>
+          <div class="g-ctrl">
             <label>성별</label>
             <select id="g-sex" onchange="drawGraph()">
               <option value="all">전체</option>
@@ -355,10 +363,12 @@ canvas{display:block;max-width:100%;}
 </div>
 
 <script>
-const CPS = [1,2,3,4,5,6,7,8,9,10,15,20];
+const CPS = [1,2,3,4,5,6,7,8,9,10];
 const COLORS=['#3b82f6','#8b5cf6','#ec4899','#22c55e','#f59e0b','#06b6d4','#f97316','#a3e635','#e879f9','#fb7185','#34d399','#fbbf24'];
+const COLORS_GOOD=['#22c55e','#16a34a','#4ade80','#86efac','#06b6d4','#0891b2'];
+const COLORS_BAD= ['#ef4444','#dc2626','#f97316','#ea580c','#f43f5e','#e11d48'];
 
-let GAS_URL = localStorage.getItem('gas_url') || 'https://script.google.com/macros/s/AKfycbxwFmEXNP3UbPDsC4P_Xk8eMgnKv-dzAE4QTh7f-vcN6D0MGs1fDKU2MTH0ngyTxQqX5g/exec';
+let GAS_URL = localStorage.getItem('gas_url') || 'https://script.google.com/macros/s/AKfycbwY3z_IMB6GWxzDEi0oinLaYpOXrztqgMRLsM8Q8l_wioDokcc6emYpCB_mpffSnkXjgg/exec';
 let sessions=[];
 let activeTab='ov';
 let pollTimer=null;
@@ -472,10 +482,16 @@ function renderOverview(){
       return `<span class="sc-ctag ${cls}">${cp}분${icon}</span>`;
     }).join('');
 
+    const fragBadge = s.fragType==='좋은향'
+      ? '<span style="font-size:10px;padding:2px 6px;border-radius:5px;background:rgba(22,163,74,0.15);color:#22c55e;font-weight:700;margin-left:4px;">😊 좋은향</span>'
+      : s.fragType==='나쁜향'
+      ? '<span style="font-size:10px;padding:2px 6px;border-radius:5px;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;margin-left:4px;">😣 나쁜향</span>'
+      : '';
+
     const card=document.createElement('div');
     card.className=`sc ${dn?'done':lv?'live':''}`;
     card.innerHTML=`<div class="sc-top">
-      <div><div class="sc-name">${s.name||'—'}</div><div class="sc-meta">${[s.age?s.age+'세':'',s.gender||''].filter(Boolean).join(' · ')}</div></div>
+      <div><div class="sc-name">${s.name||'—'}${fragBadge}</div><div class="sc-meta">${[s.age?s.age+'세':'',s.gender||''].filter(Boolean).join(' · ')}</div></div>
       <div class="sc-status ${dn?'done':lv?'live':'idle'}">${dn?'완료':lv?'LIVE':'대기'}</div>
     </div>
     <div class="sc-pips">${pips}</div>
@@ -497,9 +513,11 @@ function switchTab(id){
 // ── Graph ─────────────────────────────────────────────
 function getFiltered(){
   let d=[...sessions];
+  const frag=document.getElementById('g-frag').value;
   const sex=document.getElementById('g-sex').value;
   const fin=document.getElementById('g-fin').value;
-  if(sex!=='all') d=d.filter(s=>s.gender===sex);
+  if(frag!=='all') d=d.filter(s=>s.fragType===frag);
+  if(sex!=='all')  d=d.filter(s=>s.gender===sex);
   if(fin==='done') d=d.filter(s=>s.complete);
   return d.filter(s=>Object.keys(s.scores||{}).some(k=>(s.scores||{})[k]!==''));
 }
@@ -571,7 +589,8 @@ function drawMain(data,mode){
 
   if(mode==='all'){
     data.forEach((s,si)=>{
-      const color=COLORS[si%COLORS.length];
+      const colorPalette = s.fragType==='좋은향' ? COLORS_GOOD : s.fragType==='나쁜향' ? COLORS_BAD : COLORS;
+      const color=colorPalette[si%colorPalette.length];
       const pts=CPS.map((cp,i)=>({i,v:(s.scores||{})[cp]})).filter(p=>p.v!==undefined&&p.v!=='');
       if(!pts.length)return;
       ctx.beginPath();
@@ -597,15 +616,17 @@ function drawMain(data,mode){
     [...valid].reverse().forEach(i=>ctx.lineTo(px(i),py(Math.max(avgs[i]-stds[i],0))));
     ctx.closePath();ctx.fillStyle='rgba(59,130,246,0.12)';ctx.fill();
     // line
+    const fragSel=document.getElementById('g-frag').value;
+    const avgColor=fragSel==='좋은향'?'#22c55e':fragSel==='나쁜향'?'#ef4444':'#3b82f6';
     ctx.beginPath();st=false;
     avgs.forEach((v,i)=>{if(v===null)return;st?ctx.lineTo(px(i),py(v)):((ctx.moveTo(px(i),py(v))),st=true);});
-    ctx.strokeStyle='#3b82f6';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+    ctx.strokeStyle=avgColor;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
     avgs.forEach((v,i)=>{if(v===null)return;
-      ctx.beginPath();ctx.arc(px(i),py(v),5,0,Math.PI*2);ctx.fillStyle='#3b82f6';ctx.fill();
+      ctx.beginPath();ctx.arc(px(i),py(v),5,0,Math.PI*2);ctx.fillStyle=avgColor;ctx.fill();
       ctx.fillStyle='#e2e8f0';ctx.font='bold 9px DM Mono,monospace';ctx.textAlign='center';
       ctx.fillText(v.toFixed(1),px(i),py(v)-9);
     });
-    legend.innerHTML=`<div class="leg-item"><div class="leg-sw" style="background:#3b82f6"></div>평균</div>
+    legend.innerHTML=`<div class="leg-item"><div class="leg-sw" style="background:${avgColor}"></div>평균</div>
     <div class="leg-item"><div class="leg-sw" style="background:rgba(59,130,246,0.3)"></div>±표준편차</div>`;
 
   }else{ // box
