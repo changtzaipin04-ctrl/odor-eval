@@ -354,27 +354,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
     <!-- 1-4 Baseline (실험자 작성) -->
     <div class="survey-section">
-      <div class="section-title">1-4 후각 Baseline 확인 <span style="font-size:10px;font-weight:400;color:var(--amber);margin-left:4px;">실험자 작성</span></div>
+      <div class="section-title">1-4 향 종류 선택 <span style="font-size:10px;font-weight:400;color:var(--amber);margin-left:4px;">실험자 작성</span></div>
       <div class="baseline-box">
         <div class="bl-label">실험자 기입란</div>
-        <div class="bl-row">
-          <span class="bl-key">검사 향</span>
-          <input class="text-input" type="text" id="sv-smell" placeholder="예: 커피 향" style="flex:1;padding:8px 12px;">
-        </div>
-        <div class="bl-row">
-          <span class="bl-key">식별 가능 여부</span>
-          <div class="radio-row" id="rg-baseline" style="flex:1;margin:0;">
-            <button class="radio-btn" data-v="가능" onclick="pick('rg-baseline',this)">가능</button>
-            <button class="radio-btn" data-v="불가능(제외)" onclick="pick('rg-baseline',this)" style="background:#fee2e2;border-color:#fca5a5;color:#dc2626;">불가능 → 제외</button>
-          </div>
-        </div>
         <div class="bl-row" style="margin-bottom:0;">
-          <span class="bl-key">검사 시각</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input class="inline-input" type="number" id="sv-bl-h" placeholder="14" min="0" max="23" style="width:60px;">
-            <span class="unit">시</span>
-            <input class="inline-input" type="number" id="sv-bl-m" placeholder="00" min="0" max="59" style="width:60px;">
-            <span class="unit">분</span>
+          <span class="bl-key">향 종류</span>
+          <div class="radio-row" id="rg-fragtype" style="flex:1;margin:0;">
+            <button class="radio-btn" data-v="좋은향" onclick="pick('rg-fragtype',this)" style="font-size:15px;padding:12px 24px;">😊 좋은 향</button>
+            <button class="radio-btn" data-v="나쁜향" onclick="pick('rg-fragtype',this)" style="font-size:15px;padding:12px 24px;">😣 나쁜 향</button>
           </div>
         </div>
       </div>
@@ -458,7 +445,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <div class="screen" id="scr-done">
   <div class="done-icon">🎉</div>
   <h1>평가 완료!</h1>
-  <p>20분간의 평가에<br>참여해 주셔서 감사합니다.<br>이제 방에서 나오셔도 됩니다.</p>
+  <p>10분간의 평가에<br>참여해 주셔서 감사합니다.<br>이제 방에서 나오셔도 됩니다.</p>
   <div class="summary-grid" id="summary-grid"></div>
 </div>
 
@@ -484,10 +471,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 </div>
 
 <script>
-const CHECKPOINTS = [1,2,3,4,5,6,7,8,9,10,15,20];
+const CHECKPOINTS = [1,2,3,4,5,6,7,8,9,10];
 
 // ── URL 설정 ──────────────────────────────────────────
-let GAS_URL = 'https://script.google.com/macros/s/AKfycbxwFmEXNP3UbPDsC4P_Xk8eMgnKv-dzAE4QTh7f-vcN6D0MGs1fDKU2MTH0ngyTxQqX5g/exec';
+let GAS_URL = 'https://script.google.com/macros/s/AKfycbwY3z_IMB6GWxzDEi0oinLaYpOXrztqgMRLsM8Q8l_wioDokcc6emYpCB_mpffSnkXjgg/exec';
 
 function openSetup(){ document.getElementById('url-input').value=GAS_URL; document.getElementById('modal-setup').classList.add('show'); }
 function closeModal(){ document.getElementById('modal-setup').classList.remove('show'); }
@@ -527,8 +514,22 @@ function pickExcl(idx, val) {
 
 // 라디오 버튼 선택
 function pick(groupId, btn) {
-  document.querySelectorAll('#'+groupId+' .radio-btn, #'+groupId+' .scale-btn').forEach(b => b.classList.remove('sel'));
+  document.querySelectorAll('#'+groupId+' .radio-btn, #'+groupId+' .scale-btn').forEach(b => {
+    b.classList.remove('sel');
+    // fragtype 버튼은 선택 해제 시 스타일 초기화
+    if (groupId === 'rg-fragtype') {
+      b.style.background = ''; b.style.borderColor = ''; b.style.color = '';
+    }
+  });
   btn.classList.add('sel');
+  // fragtype 선택 시 색 강조
+  if (groupId === 'rg-fragtype') {
+    if (btn.dataset.v === '좋은향') {
+      btn.style.background='#dcfce7'; btn.style.borderColor='#16a34a'; btn.style.color='#16a34a';
+    } else {
+      btn.style.background='#fee2e2'; btn.style.borderColor='#dc2626'; btn.style.color='#dc2626';
+    }
+  }
 }
 
 function getVal(groupId) {
@@ -542,11 +543,7 @@ function goToLogin() {
     alert('제외 기준에 해당하여 실험에 참여할 수 없습니다.');
     return;
   }
-  // baseline '불가능' 선택 시
-  if (getVal('rg-baseline') === '불가능(제외)') {
-    alert('후각 검사 미통과로 실험에서 제외됩니다.');
-    return;
-  }
+  // baseline '불가능' 선택 시 제거됨
   document.getElementById('scr-survey').classList.remove('show');
   document.getElementById('scr-login').classList.add('show');
 }
@@ -564,9 +561,7 @@ function collectSurvey() {
     caffeine:  getVal('rg-caffeine'),
     condition: getVal('rg-condition'),
     noseClog:  document.getElementById('sv-nose').value,
-    blSmell:   document.getElementById('sv-smell').value,
-    blResult:  getVal('rg-baseline'),
-    blTime:    (document.getElementById('sv-bl-h').value||'?')+'시'+(document.getElementById('sv-bl-m').value||'?')+'분',
+    blFragType: getVal('rg-fragtype'),
   };
 }
 
@@ -623,6 +618,7 @@ async function startEval() {
     action:'register', sessionId, name,
     gender: survey.gender,
     age: survey.age,
+    fragType: survey.blFragType,
     survey: JSON.stringify(survey)
   });
   setConn(res.ok);
